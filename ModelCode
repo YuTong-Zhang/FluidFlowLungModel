@@ -1,0 +1,759 @@
+function LungModelFinalDraftVersion
+
+%x**anything**=[XO2; XCO2; XH2O; XN2]
+
+%n**anything**=[nO2; nCO2; nH2O; nN2]
+
+%n**anything**tot=total number moles
+
+%INPUTS:
+
+xAmbient=[0.209; 0.0004; 0.005; .786]; %molar composition
+
+vAmbient=0.5; %volume of ambient air taken in during one inhale (L)
+
+xDead1=[.136; .053; .062; .749]; %molar composition of old air coming from diffuser GUYTON VALUES FOR ALVEOLAR AIR
+
+nDead1=.00589; %moles of air coming from expirer REVISIT THIS NUMBER
+
+[VdotO2intoHumidifier,nHum,xHum,nDead2,xDead2]=humidifier(xAmbient,vAmbient);
+
+[VdotO2outofMixerMAT,nTransMAT,xTransMAT]=mixer(xDead1,xHum);
+
+[VdotO2inExchangedAirMAT,xAlveoliMATin,nAlveoliMATin,ppAlveoliMATin,xAlveoliMATex,nAlveoliMATex,ppAlveoliMATex,nDead1,VdotO2MATin,VdotCO2MATin,VdotO2MATex,VdotCO2MATex] = Diffuser(nTransMAT,xTransMAT);
+
+[VdotO2inExhaleMAT,nExhaleMAT,xExhaleMAT,totalnExhale,totalxExhale]=expirer(xAlveoliMATex,ppAlveoliMATex,xDead2);
+
+[VOxyBloodO2MAT,VOxyBloodCO2MAT,venousO2concentrationMAT,venousCO2concentrationMAT] = exchanger(nAlveoliMATin,nAlveoliMATex,VdotO2MATin,VdotCO2MATin,VdotO2MATex,VdotCO2MATex);
+
+RQ = (sum(VdotCO2MATin)+sum(VdotCO2MATex))/(sum(VdotO2MATin)+sum(VdotO2MATex))
+
+%pie chart
+
+figure(1)
+
+AmbientPie=[xAmbient(1) xAmbient(2) xAmbient(3) xAmbient(4) 1.004-sum(xAmbient)];
+
+pie(AmbientPie, {strcat('O2, ', num2str(xAmbient(1)*100),'%'), strcat('CO2, ', num2str(xAmbient(2)*100),'%'), strcat('H2O, ', num2str(xAmbient(3)*100),'%'), strcat('N2, ', num2str(xAmbient(4)*100),'%'), strcat('other, ', num2str(AmbientPie(5)*100),'%')});
+
+title('Composition of Ambient Air Entering Humidifier')
+
+%pie chart
+
+figure(2)
+
+HumPie=[xHum(1) xHum(2) xHum(3) xHum(4) 1.004-sum(xHum)];
+
+pie(HumPie, {strcat('O2, ', num2str(xHum(1)*100),'%'), strcat('CO2, ', num2str(xHum(2)*100),'%'), strcat('H2O, ', num2str(xHum(3)*100),'%'), strcat('N2, ', num2str(xHum(4)*100),'%'), strcat('other, ', num2str(HumPie(5)*100),'%')});
+
+title('Composition of Humidified Air Leaving Humidifier')
+
+%pie chart
+
+figure(3)
+
+ExhalePie = [totalxExhale 1-sum(totalxExhale)];
+
+pie(ExhalePie, {strcat('O2, ', num2str(totalxExhale(1)*100),'%'), strcat('CO2, ', num2str(totalxExhale(2)*100),'%'), strcat('H2O, ', num2str(totalxExhale(3)*100),'%'), strcat('N2, ', num2str(totalxExhale(4)*100),'%'), strcat('other, ', num2str(ExhalePie(5)*100),'%')});
+
+title('Composition of Exhaled Air Leaving Expirer (Exhale Breath)')
+
+%line graph
+
+figure(4)
+
+plot(1:2000,nTransMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Moles of Air [mol]','fontsize',14);
+
+title('Moles of Air in Transition Air Stream During Inhale','fontsize',14);
+
+legend('O2', 'CO2', 'H2O', 'N2');
+
+%line graph
+
+figure(5)
+
+plot(1:2000,xTransMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Composition of Air','fontsize',14);
+
+title('Composition of Air in Transition Air Stream During Inhale','fontsize',14);
+
+2
+
+legend('O2', 'CO2', 'H2O', 'N2');
+
+%line graph
+
+figure(6)
+
+nAlveolicompleteMAT = [nAlveoliMATin nAlveoliMATex];
+
+plot(1:5000, nAlveolicompleteMAT(1:2,:));
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Moles of Air [mol]','fontsize',14);
+
+title('Moles of Oxygen and Carbon Dioxide in Diffuser Over One Breath','fontsize',14);
+
+legend('O2', 'CO2');
+
+%line graph
+
+figure(7)
+
+xAlveolicompleteMAT = [xAlveoliMATin xAlveoliMATex];
+
+plot(1:5000, xAlveolicompleteMAT(1:2,:));
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Composition of Air [mol]','fontsize',14);
+
+title('Composition of Oxygen and Carbon Dioxide in Diffuser Over One Breath','fontsize',14);
+
+legend('O2', 'CO2');
+
+%line graph
+
+figure(8)
+
+ppAlveolicompleteMAT = [ppAlveoliMATin ppAlveoliMATex];
+
+plot(1:5000, ppAlveolicompleteMAT(1:2,:));
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Partial Pressure of Air [mmHg]','fontsize',14);
+
+title('Partial Pressure of Oxygen and Carbon Dioxide in Diffuser Over One Breath','fontsize',14);
+
+legend('O2', 'CO2');
+
+%line graph
+
+figure(9)
+
+plot(1:3000,nExhaleMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Moles of Air [mol]','fontsize',14);
+
+title('Moles of Air in Exhale Stream During Exhale','fontsize',14);
+
+legend('O2', 'CO2', 'H2O', 'N2');
+
+%line graph
+
+figure(10)
+
+plot(1:3000,xExhaleMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Composition of Air','fontsize',14);
+
+title('Composition of Air in Exhale Stream During Exhale','fontsize',14);
+
+legend('O2', 'CO2', 'H2O', 'N2');
+
+%line graph
+
+figure(11)
+
+VdotMAT = [VdotO2MATin VdotO2MATex; VdotCO2MATin VdotCO2MATex];
+
+plot(1:5000,VdotMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Volumetric Flow Rate [L/s]','fontsize',14);
+
+title('Volumetric Flow Rate of O2 and CO2 Between Diffuser and Exchanger Over One Breath','fontsize',14);
+
+legend('O2', 'CO2');
+
+3
+
+%line graph
+
+figure(12)
+
+plot(1:5000,venousO2concentrationMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Blood Concentration O2 [mL O2/mL blood]','fontsize',14);
+
+title('Blood Composition of O2 Over One Breath','fontsize',14);
+
+%line graph
+
+figure(13)
+
+plot(1:5000,venousCO2concentrationMAT)
+
+xlabel('Time [ms]','fontsize',14);
+
+ylabel('Blood Concentration CO2 [mL CO2/mL blood]','fontsize',14);
+
+title('Blood Composition of CO2 Over One Breath','fontsize',14);
+
+display(VdotO2intoHumidifier)
+
+display('VdotO2outofMixerMAT')
+
+display(VdotO2outofMixerMAT(1:100:2000))
+
+avgVdotO2outofMixer=mean(VdotO2outofMixerMAT);
+
+display(avgVdotO2outofMixer)
+
+display('VdotO2inExchangedAirMAT')
+
+display(VdotO2inExchangedAirMAT(1:100:3000))
+
+avgVdotO2inExchangedAir=mean(VdotO2inExchangedAirMAT);
+
+display(avgVdotO2inExchangedAir)
+
+display('VdotO2inExhaleMAT')
+
+display(VdotO2inExhaleMAT(1:100:3000))
+
+avgVdotO2inExhale=mean(VdotO2inExhaleMAT);
+
+display(avgVdotO2inExhale)
+
+end
+
+function [VdotO2intoHumidifier,nHum,xHum,nDead2,xDead2]=humidifier(xAmbient,vAmbient)
+
+%x**anything**=[XO2; XCO2; XH2O; XN2]
+
+%INPUTS:
+
+%xAmbient=molar composition of ambient air
+
+%vAmbient=volume of ambient air taken in during one inhale (L)
+
+%OUTPUTS:
+
+%nHum=VECTOR moles of air of each component going on to mixer
+
+%xHum=molar composition of Hum
+
+%UPDATE
+
+%converting L to mol:
+
+P=760-0.35; %mmHg
+
+R=62.364; %L*mmHg/(K*mol)
+
+T=310; %K
+
+nAmbienttot=P*vAmbient/(R*T); %mol
+
+nAmbient=nAmbienttot*xAmbient; %mol
+
+VdotO2intoHumidifier=(nAmbient(1)/2)*R*T/P;%(mol/s)*(L*mmHg/(K*mol))*(K)/(mmHg)=(L/s)
+
+4
+
+VDead2=.15; %L
+
+nDead2tot=P*VDead2/(R*T); %mol
+
+xH2O=[0 0 1 0];
+
+xH2Ofinal=0.062;
+
+%HUMIDIFICATION:
+
+nH2O=(nAmbient(3)-xH2Ofinal*nAmbienttot)/(xH2Ofinal-1);
+
+%this solves for the amount of water that needs to be added to the
+
+%air in order for the air to be fully humidified
+
+%CONSERVATION:
+
+%nAmbienttot+nH2O-nHumtot-nDead2tot=0
+
+nHumtot=nAmbienttot+nH2O-nDead2tot;
+
+knowns=zeros(4,2);
+
+%set up matrix to fill in with known values
+
+knowns(:,1)=nAmbient;
+
+knowns(:,2)=xH2O*nH2O;
+
+solving=sum(knowns');
+
+solving=solving';
+
+%this gets the sums of each row, so that those can be set equal to the
+
+%unknowns within the framework of the conservation equation
+
+xOutgoing=solving/(nHumtot+nDead2tot);%composition of both outgoing streams is
+
+%the same, so we are solving for the composition
+
+%of the total outgoing air, and then splitting it into two streams
+
+xDead2=xOutgoing;
+
+xHum=xOutgoing;
+
+nHum=xHum*nHumtot;
+
+nDead2=xDead2*nDead2tot;
+
+end
+
+function [VdotO2outofMixerMAT,nTransMAT,xTransMAT]=mixer(xDead1,xHum)
+
+P=760-0.35; %mmHg
+
+R=62.364; %L*mmHg/(K*mol)
+
+T=310; %K
+
+for i = 1:2000 %inhale=2000 ms
+
+VHum = 250/((1+exp(-.008*(i-599)))*1000000); %L
+
+VDead1 = (250-250/(1+exp(-.008*(i-599))))/1000000; %L
+
+nHumtot = (VHum*P)/(R*T); %mol
+
+nDead1tot = (VDead1*P)/(R*T); %mol
+
+nTranstot = nHumtot + nDead1tot;
+
+nHum=nHumtot*xHum;
+
+5
+
+nDead1=nDead1tot*xDead1;
+
+ntot(:,i) = nHumtot + nDead1tot;
+
+xHumMAT(:,i) = xHum;
+
+xDead1MAT(:,i) = xDead1;
+
+knowns = zeros(4,2);
+
+nTOT(:,i) = nHum + nDead1;
+
+nTransMAT(:,i) = nTOT(:,i);
+
+xTransMAT(:,i) = nTOT(:,i)/nTranstot;
+
+VdotO2outofMixerMAT=(nTransMAT(1,:)*1000)*R*T/P;%(mol/ms)*(1000ms/1s)*(L*mmHg/(K*mol))*(K)/(mmHg)=(L/s)
+
+end
+
+end
+
+function [VdotO2inExchangedAirMAT,xAlveoliMATin,nAlveoliMATin,ppAlveoliMATin,xAlveoliMATex,nAlveoliMATex,ppAlveoliMATex,nDead1,VdotO2MATin,VdotCO2MATin,VdotO2MATex,VdotCO2MATex] = Diffuser(nTransMAT,xTransMAT)
+
+P=760-0.35; %mmHg
+
+R=62.364; %L*mmHg/(K*mol)
+
+T=310; %K
+
+DlO2 = .000375; %L/(s*mmhg) surface area = 70 m^2 %21ml/min/mmhg
+
+DlCO2 = .0075; %L/(s*mmhg)
+
+mwO2 = 32; %g/mol
+
+mwCO2 = 44; %g/mol
+
+densityO2 = 1.26; %g/L
+
+densityCO2 = 1.74; %g/L
+
+%INITIAL CONDITIONS OF THE DIFFUSER:
+
+xLeftOverInAlv=[0.14; 0.053; 0.062; 0.75];
+
+%convert L to mol:
+
+Valveoli = 2.3; %L
+
+nAlveolitot = (P*Valveoli)/(R*T);
+
+nAlveoli = nAlveolitot*xLeftOverInAlv;
+
+for i = 1:2000 %iterations over time for inhale (2000ms)
+
+%ADDING INHALED AIR TO AIR IN ALV:
+
+nAlveolitot = nAlveolitot + sum(nTransMAT(:,i));
+
+nAlveolitotMATin(i)=nAlveolitot;
+
+nAlveoli = nAlveoli + nTransMAT(:,i);
+
+xAlveoli = nAlveoli/nAlveolitot;
+
+xAlveoliNEW(:,i) = xAlveoli;
+
+nAlveoliNEW(:,i) = nAlveoli;
+
+ppalveoliO2 = P*xAlveoli(1); %mmHg
+
+6
+
+ppalveoliCO2 = P*xAlveoli(2); %mmHg
+
+ppalveoliH2O = P*xAlveoli(3); %mmHg
+
+ppalveoliN2 = P*xAlveoli(4); %mmHg
+
+partialpressures = [ppalveoliO2; ppalveoliCO2; ppalveoliH2O; ppalveoliN2];
+
+partialpressuresMAT(:,i) = partialpressures;
+
+ppO2cap = linearO2cap(i); %mmHg
+
+ppCO2cap = linearCO2cap(i); %mmHg
+
+ppCO2capMAT1(:,i) = ppCO2cap;
+
+%Fick's Law:
+
+VdotO2 = DlO2*(ppalveoliO2 - ppO2cap); %L/s
+
+VdotCO2 = DlCO2*(ppCO2cap - ppalveoliCO2); %L/s
+
+nO2 = VdotO2*densityO2*(.001)/mwO2; %.001s=1ms this is the amt of O2 diffused in 1 ms
+
+nCO2 = VdotCO2*densityCO2*(.001)/mwCO2; %.001s=1ms this is the amt of CO2 diffused in 1 ms
+
+VdotO2MATin(i) = VdotO2; %L/s
+
+VdotCO2MATin(i) = VdotCO2; %L/s
+
+nMAT(:,i) = [nO2; nCO2]; %mol
+
+nAlveoliO2 = nAlveoli(1) - nO2;
+
+nAlveoliCO2 = nAlveoli(2) + nCO2;
+
+%this is updating the moles/composition of the air in the alveoli:
+
+nAlveoli = [nAlveoliO2; nAlveoliCO2; nAlveoli(3); nAlveoli(4)];
+
+xAlveoli = nAlveoli/nAlveolitot;
+
+nAlveoliMATin(:,i) = nAlveoli;
+
+xAlveoliMATin(:,i) = xAlveoli;
+
+ppAlveoli = P*xAlveoli;
+
+ppAlveoliMATin(:,i) = ppAlveoli;
+
+ppO2capVEC(i) = ppO2cap;
+
+ppCO2capVEC(i) = ppCO2cap;
+
+end
+
+nAlveoliEx = nAlveoliMATin(:,2000);
+
+xAlveoliEx = xAlveoliMATin(:,2000);
+
+for h = 1:3000
+
+P=760+.35;
+
+VExchanged = 167/1000000; %L CONSTANT RATE
+
+nExchangedtot = (VExchanged*P)/(R*T); %mol I CHANGED NEXCHANGED TO NEXCHANGEDTOT
+
+nExchanged = nExchangedtot*xAlveoliEx; %I CHANGED NEXCHANGEDCOMP TO NEXCHANGED
+
+nAlveoliEx = nAlveoliEx - nExchanged;
+
+nAlveolitotMATex(:,h)=nAlveoliEx;
+
+VdotO2inExchangedAirMAT(h)=(nExchanged(1)*1000)*R*T/P;%(mol/ms)*(1000ms/1s)*(L*mmHg/(K*mol))*(K)/(mmHg)=(L/s)
+
+xAlveoliEx = nAlveoliEx/sum(nAlveoliEx);
+
+7
+
+ppalveoliO2 = P*xAlveoliEx(1);
+
+ppalveoliCO2 = P*xAlveoliEx(2);
+
+ppalveoliH2O = P*xAlveoliEx(3);
+
+ppalveoliN2 = P*xAlveoliEx(4);
+
+ppO2cap = linearO2cap(2000+h); %mmHg
+
+ppCO2cap = linearCO2cap(2000+h); %mmHg
+
+ppCO2capMAT(:,h) = ppCO2cap;
+
+VdotO2 = DlO2*(ppalveoliO2 - ppO2cap);
+
+VdotCO2 = DlCO2*(ppCO2cap- ppalveoliCO2);
+
+VdotO2MATex(h) = VdotO2;
+
+VdotCO2MATex(h) = VdotCO2;
+
+nO2 = VdotO2*densityO2*(.001)/mwO2;
+
+nCO2 = VdotCO2*densityCO2*(.001)/mwCO2;
+
+nMAT(:,h+2000) = [nO2; nCO2];
+
+nAlveoliO2 = nAlveoliEx(1) - nO2;
+
+nAlveoliCO2 = nAlveoliEx(2) + nCO2;
+
+nAlveoliEx = [nAlveoliO2; nAlveoliCO2; nAlveoliEx(3); nAlveoliEx(4)];
+
+xAlveoliEx = nAlveoliEx/sum(nAlveoliEx);
+
+nAlveoliMATex(:,h) = nAlveoliEx;
+
+xAlveoliMATex(:,h) = xAlveoliEx;
+
+ppAlveoli = P*xAlveoliEx; %mmHg
+
+ppAlveoliMATex(:,h) = ppAlveoli;
+
+ppO2capVEC2(h) = ppO2cap;
+
+ppCO2capVEC2(h) = ppCO2cap;
+
+end
+
+VdotO2MATex;
+
+VdotCO2MATex;
+
+mean(VdotO2MATex);
+
+mean(VdotCO2MATex);
+
+sum(VdotO2MATex < 0);
+
+sum(VdotCO2MATex < 0);
+
+nDead1tot = (P*.15)/(R*T); %mol (.15 L)
+
+xDead1 = xAlveoliMATex(:,3000); %composition of dead air is same as alveoli at end of exhale
+
+nDead1 = nDead1tot*xDead1;
+
+ppAlveoliMATex;
+
+mean(ppAlveoliMATex');
+
+% plot(1:3000,VdotCO2MATex)
+
+% plot(2001:5000,ppCO2capMAT)
+
+8
+
+% axis([1660 2000 39 40.5])
+
+% ppO2capMAT = [ppO2capVEC ppO2capVEC2]
+
+ppCO2capMAT = [ppCO2capVEC ppCO2capVEC2];
+
+% length(ppO2capMAT)
+
+% figure(1)
+
+% plot(1:5000,ppO2capMAT)
+
+% grid
+
+% figure(2)
+
+% plot(1:5000,ppCO2capMAT)
+
+% axis([1660 1680 40 40.05])
+
+end
+
+%OUTPUT THESE GRAPHS TO SHOW ASSUMPTION THAT WE'RE MAKING:
+
+%These functions model the changing partial pressures of O2 and CO2 in the
+
+%capillaries, based on graphs from Guyton
+
+function [ppCO2cap] = linearCO2cap(x)
+
+if x < 1667
+
+ppCO2cap = -0.00299*x+45;
+
+else
+
+ppCO2cap = -0.000003*x+40.021;
+
+end
+
+end
+
+function [ppO2cap] = linearO2cap(x)
+
+if x < 1667
+
+ppO2cap = 0.0383*x+40;
+
+else
+
+ppO2cap = 0.00003*x+103.8;
+
+end
+
+end
+
+function [VdotO2inExhaleMAT,nExhaleMAT,xExhaleMAT,totalnExhale,totalxExhale]=expirer(xAlveoliMATex,ppAlveoliMATex,xDead2)
+
+P=760+0.35; %mmHg
+
+R=62.364; %L*mmHg/(K*mol)
+
+T=310; %K
+
+xExchanged = xAlveoliMATex(:,1); %exhanged air going into expirer has same composition as diffuser at end of inhale
+
+for i = 1:3000 %this is iterating over the 3000ms of the exhale
+
+VExchanged = 167/((1+exp(-.005*(i-902)))*1000000); %L
+
+VDead2 = (167-167/(1+exp(-.005*(i-902))))/1000000; %L THIS WAS WRONG BUT I CHECKED WITH WOLFRAM ALPHA AND NOW ITS RIGHT SO DON'T CHANGE IT -KATHLEEN
+
+nExchangedtot = (VExchanged*P)/(R*T);
+
+nExchanged= nExchangedtot*xAlveoliMATex(:,i);
+
+9
+
+nDead2tot = (VDead2*P)/(R*T);
+
+nDead2=nDead2tot*xDead2;
+
+knowns = zeros(4,2);
+
+knowns(:,1) = nExchanged;
+
+knowns(:,2) = nDead2;
+
+moles = sum(knowns');
+
+moles = moles';
+
+nExhaleMAT(:,i) = moles;
+
+xExhaleMAT(:,i) = moles/(nDead2tot + nExchangedtot);
+
+end
+
+totalnExhale = sum(nExhaleMAT');
+
+totalxExhale = totalnExhale/sum(totalnExhale);
+
+VdotO2inExhaleMAT=(nExhaleMAT(1,:)*1000)*R*T/P;%(mol/ms)*(1000ms/1s)*(L*mmHg/(K*mol))*(K)/(mmHg)=(L/s))
+
+end
+
+function [VOxyBloodO2MAT,VOxyBloodCO2MAT,bloodO2concentrationMAT,bloodCO2concentrationMAT] = exchanger(nAlveoliMATin,nAlveoliMATex,VdotO2MATin,VdotCO2MATin,VdotO2MATex,VdotCO2MATex)
+
+VBloodcap = .06; %[L]
+
+tcap=0.75; %[s]
+
+arterialO2concentration = 0.145; %[mLO2/mLblood],
+
+arterialCO2concentration = 0.532; %[mLCO2/mLblood]
+
+VBlood = VBloodcap*5/(tcap); %L
+
+VBloodO2 = (arterialO2concentration*VBlood); %L
+
+VBloodCO2 = (arterialCO2concentration*VBlood); %L
+
+for i = 1:5000 %iterating over entire 5000ms breath
+
+if i <= 2000 %inhale
+
+VBloodO2new = VdotO2MATin(i)/1000;%*1ms %L
+
+VBloodCO2new = VdotCO2MATin(i)/1000;%*1ms %L
+
+VBlood = VBloodO2new + VBlood - VBloodCO2new; %L
+
+VOxyBloodO2 = VBloodO2 + VBloodO2new; %L
+
+VOxyBloodCO2 = VBloodCO2 - VBloodCO2new; %L
+
+VBloodO2 = VOxyBloodO2; %L
+
+VBloodCO2 = VOxyBloodCO2;%L
+
+bloodO2concentration = VOxyBloodO2/VBlood; %L/L
+
+bloodCO2concentration = VOxyBloodCO2/VBlood;
+
+else %exhale
+
+VBloodO2new = VdotO2MATex(i-2000)/1000; %L
+
+VBloodCO2new = VdotCO2MATex(i-2000)/1000; %L
+
+VBlood = VBloodO2new + VBlood - VBloodCO2new;
+
+VOxyBloodO2 = VBloodO2 + VBloodO2new;
+
+VOxyBloodCO2 = VBloodCO2 - VBloodCO2new;
+
+VBloodO2 = VOxyBloodO2;
+
+VBloodCO2 = VOxyBloodCO2;
+
+bloodO2concentration = VOxyBloodO2/VBlood;
+
+10
+
+bloodCO2concentration = VOxyBloodCO2/VBlood;
+
+end
+
+VOxyBloodO2MAT(i) = VOxyBloodO2;
+
+VOxyBloodCO2MAT(i) = VOxyBloodCO2;
+
+bloodO2concentrationMAT(i) = bloodO2concentration;
+
+bloodCO2concentrationMAT(i) = bloodCO2concentration;
+
+end
+
+end
